@@ -154,10 +154,167 @@ from Delivery d1,
     
 ================================================================================================================================================================
 
+Q20. Write an SQL query to find the ctr of each Ad. Round ctr to two decimal points.
+Return the result table ordered by ctr in descending order and by ad_id in ascending order in case of a
+tie.
 
+>> SELECT ad_id,
+     CASE 
+         WHEN (num_of_clicks * 100) / (num_of_clicks + num_of_views) IS NULL THEN 0
+         ELSE ROUND((num_of_clicks * 100) / (num_of_clicks + num_of_views), 2)
+         END AS ctr 
+FROM 
+	(SELECT ad_id,
+	COUNT(CASE 
+		WHEN action = 'CLICKED' THEN ad_id
+		END
+		) 	AS num_of_clicks, 
+        
+	COUNT(CASE WHEN action = 'VIEWED' THEN ad_id
+	END)
+ AS num_of_views FROM ads GROUP BY ad_id) temp_ads
+ORDER BY ctr DESC, ad_id ASC;
 
+================================================================================================================================================================
 
+Q21. Write an SQL query to find the team size of each of the employees.
+     Return result table in any order.
+     
+>> SELECT employee_id, COUNT(*)
+   OVER(PARTITION BY team_id) AS team_size
+   FROM employee;
+   
+ ================================================================================================================================================================
 
+Q22. Write an SQL query to find the type of weather in each country for November 2019.
+     The type of weather is:
+     ● Cold if the average weather_state is less than or equal 15,
+     ● Hot if the average weather_state is greater than or equal to 25, and
+     ● Warm otherwise.
+     Return result table in any order.
+     
+>> SELECT c.country_name,
+          CASE
+			WHEN AVG(weather_state) <= 15 THEN 'COLD'
+			WHEN AVG(weather_state) >= 25 THEN 'HOT'
+			ELSE 'WARM'
+			END AS avg_weather
+     FROM countries c INNER JOIN weather w
+     ON c.country_id = w.country_id
+     WHERE day BETWEEN '2019-11-01' AND '2019-11-30'
+     GROUP BY c.country_id, c.country_name;
+
+================================================================================================================================================================
+
+Q23. Write an SQL query to find the average selling price for each product. average_price should be
+     rounded to 2 decimal places. Return the result table in any order.
+     
+>> SELECT p.product_id,
+  ROUND(SUM(up.units*p.price)/SUM(up.units), 2) AS average_price
+  FROM units_sold up
+  INNER JOIN prices p
+  ON up.product_id = p.product_id
+  AND up.purchase_date BETWEEN p.start_date AND p.end_date
+GROUP BY p.product_id;
+
+================================================================================================================================================================
+
+Q24. Write an SQL query to report the first login date for each player.
+     Return the result table in any order.
+
+>> SELECT player_id, first_login
+     FROM(SELECT player_id, event_date as first_login,
+	ROW_NUMBER()
+     OVER(PARTITION BY player_id ORDER BY event_date) ranking
+	FROM activity) temp_activity
+     WHERE ranking = 1;
+
+================================================================================================================================================================
+
+Q25. Write an SQL query to report the device that is first logged in for each player.
+     Return the result table in any order.
+
+>> SELECT player_id, device_id
+     FROM(SELECT player_id, device_id,
+     ROW_NUMBER()
+     OVER(PARTITION BY player_id ORDER BY device_id) as ranking
+	FROM activity)
+     temp_activity
+     WHERE ranking = 1;
+
+================================================================================================================================================================
+
+Q26. Write an SQL query to get the names of products that have at least 100 units ordered in February 2020
+     and their amount.
+
+>> SELECT p.product_name,
+    SUM(o.unit) AS total_unit_sold
+    FROM products p
+    INNER JOIN orders o
+    ON p.product_id = o.product_id
+    WHERE order_date BETWEEN '2020-02-01' AND '2020-02-28'
+    GROUP BY p.product_id
+    HAVING SUM(o.unit) >= 100;
+
+================================================================================================================================================================
+
+Q27. Write an SQL query to find the users who have valid emails.
+     A valid e-mail has a prefix name and a domain where:
+     ● The prefix name is a string that may contain letters (upper or lower case), digits, underscore '_', period '.', and/or dash '-'.
+     The prefix name must start with a letter.
+     ● The domain is '@leetcode.com'.
+
+>> SELECT user_id, name, mail
+   FROM users
+   WHERE mail LIKE '%@leetcode.com' AND mail REGEXP '^[a-zA-Z0-9][a-zA-Z0-9._-]*@[a-zA-Z0-9][a-zA-Z0-9._-]*\\.[a-zA-Z]{2,4}$';
+
+================================================================================================================================================================
+
+Q28. Write an SQL query to report the customer_id and customer_name of customers who have spent at least $100 in each month of June and July 2020.
+
+>> SELECT customer_id, name
+   FROM (
+     SELECT c.customer_id,c.name,
+     EXTRACT(MONTH FROM o.order_date) AS month_extracted,
+     SUM(o.quantity * p.price) AS total_spent
+     FROM orders o
+     INNER JOIN customers c 
+     ON c.customer_id = o.customer_id
+     INNER JOIN products p
+     ON p.product_id = o.product_id
+     WHERE o.order_date BETWEEN '2020-06-01' AND '2020-07-31'
+     GROUP BY c.customer_id,c.name, 
+     EXTRACT(MONTH FROM o.order_date)
+     ) temp_customers
+        
+WHERE total_spent >= 100
+GROUP BY customer_id
+HAVING COUNT(customer_id) = 2;
+
+================================================================================================================================================================
+
+Q29. Write an SQL query to report the distinct titles of the kid-friendly movies streamed in June 2020. Return the result table in any order.
+
+>> SELECT DISTINCT c.title
+FROM content c
+INNER JOIN tv_program t
+ON c.content_id = T.content_id
+WHERE c.kids_content = 'Y' AND c.content_type = 'movies' 
+AND T.program_date BETWEEN '2020-06-01' AND '2020-06-30';
+
+================================================================================================================================================================
+
+Q30. Write an SQL query to find the npv of each query of the Queries table.
+
+>> SELECT DISTINCT n.id, n.year, n.npv
+     FROM queries q
+     INNER JOIN npv n
+     ON n.id = q.id 
+     AND n.year = q.year;
+
+================================================================================================================================================================
+
+Q31.
 
 
 
