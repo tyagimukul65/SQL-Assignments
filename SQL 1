@@ -316,5 +316,106 @@ Q30. Write an SQL query to find the npv of each query of the Queries table.
 
 Q31.
 
+>> CREATE TABLE npv
+(
+  id INT,
+  year INT,
+  npv INT,
+  CONSTRAINT pk_npv PRIMARY KEY(id, year)
+);
+
+CREATE TABLE queries
+(
+  id INT,
+  year INT,
+  CONSTRAINT pk_quereis PRIMARY KEY(id,year)
+);
+
+INSERT INTO npv VALUES(1, 2018, 100);
+INSERT INTO npv VALUES(7, 2020, 30);
+INSERT INTO npv VALUES(13, 2019, 40);
+INSERT INTO npv VALUES(1, 2019, 113);
+INSERT INTO npv VALUES(2, 2008, 121);
+INSERT INTO npv VALUES(3, 2009, 12);
+INSERT INTO npv VALUES(11, 2020, 99);
+INSERT INTO npv VALUES(7, 2019, 0);
+
+INSERT INTO queries VALUES(1, 2019);
+INSERT INTO queries VALUES(2, 2008);
+INSERT INTO queries VALUES(3, 2009);
+INSERT INTO queries VALUES(7, 2018);
+INSERT INTO queries VALUES(7, 2019);
+INSERT INTO queries VALUES(7, 2020);
+INSERT INTO queries VALUES(13, 2019);
+
+>> SELECT 
+   q.id,
+   q.year, 
+   ifnull(n.npv,0) as npv
+   FROM queries AS q
+   LEFT JOIN npv AS n ON q.id = n.id AND q.year = n.year;
+
+================================================================================================================================================================
+
+Q.32 Each row of this table contains the id and the corresponding unique id of an employee in the company.
+     Write an SQL query to show the unique ID of each user, If a user does not have a unique ID replace just show null.
+
+>> SELECT unique_id, name
+   FROM Employees
+   LEFT JOIN EmployeeUNI
+   ON (Employees.id = EmployeeUNI.id, Employees.id, null);
+
+================================================================================================================================================================
+
+Q.33 Write an SQL query to report the distance travelled by each user. Return the result table ordered by travelled_distance in descending order, if two or more users
+     travelled the same distance, order them by their name in ascending order.
+
+>>>    select name, sum(if null(distance, 0)) as travelled_distance
+	from Rides r
+	right join Users u
+	on r.user_id = u.id
+	group by name
+	order by 2 desc,1 asc;
+
+================================================================================================================================================================
+
+Q.34 Write an SQL query to get the names of products that have at least 100 units ordered in February 2020 and their amount.
+
+>>>   SELECT a.product_name, SUM(unit) AS unit
+	FROM Products a
+	LEFT JOIN Orders b
+	ON a.product_id = b.product_id
+	WHERE b.order_date between '2020-02-01' and '2020-02-29'
+	GROUP BY a.product_id
+	HAVING SUM(unit) >= 100;
+
+================================================================================================================================================================
+
+Q.35 Write an SQL query to:
+     ● Find the name of the user who has rated the greatest number of movies. In case of a tie, return the lexicographically smaller user name.
+     ● Find the movie name with the highest average rating in February 2020. In case of a tie, return the lexicographically smaller movie name.
+
+>>> ● SELECT user_name AS results FROM
+	(
+	SELECT a.name AS user_name, COUNT(*) AS counts FROM MovieRating AS b
+	    JOIN Users AS a
+	    on a.user_id = b.user_id
+	    GROUP BY b.user_id
+	    ORDER BY counts DESC, user_name ASC LIMIT 1
+	);
+	
+    ● SELECT movie_name AS results FROM
+	(
+	SELECT c.title AS movie_name, AVG(d.rating) AS rate FROM MovieRating AS d
+	    JOIN Movies AS c
+	    on c.movie_id = d.movie_id
+	    WHERE substr(d.created_at, 1, 7) = '2020-02'
+	    GROUP BY d.movie_id
+	    ORDER BY rate DESC, movie_name ASC LIMIT 1
+	)
+
+================================================================================================================================================================
+
+Q.36 
 
 
