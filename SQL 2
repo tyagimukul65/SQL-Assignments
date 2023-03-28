@@ -1,0 +1,103 @@
+Q.51 Write an SQL query to report the name, population, and area of the big countries. Return the result table in any order.
+
+>>> SELECT name, population, area 
+  FROM world 
+  WHERE area > 3000000 
+  OR population > 25000000;
+
+=======================================================================================================================================================================
+
+Q.52 Write an SQL query to report the names of the customer that are not referred by the customer with id = 2. Return the result table in any order
+
+>>> SELECT name 
+  FROM customer 
+  WHERE refree_id <> 2
+  OR refree_id IS NULL;
+
+=======================================================================================================================================================================
+
+Q.53 Write an SQL query to report all customers who never order anything. Return the result table in any order.
+
+>> SELECT name AS customers
+  FROM customers
+  WHERE id NOT IN (SELECT customer_id 
+  FROM orders
+  );
+
+=======================================================================================================================================================================
+
+Q.54 Write an SQL query to find the team size of each of the employees. Return result table in any order.
+
+>> SELECT employee_id,
+  count(*) OVER(PARTITION BY team_id) AS team_size
+  FROM employee;
+
+=======================================================================================================================================================================
+
+Q.56 Write an SQL query to report the device that is first logged in for each player. Return the result table in any order.
+
+>> SELECT player_id, device_id 
+  FROM (SELECT player_id, device_id, event_date, 
+  ROW_number() OVER(PARTITION BY player_id ORDER BY event_date) ranking 
+  FROM activity) temp_activity
+  WHERE ranking = 1;
+
+=======================================================================================================================================================================
+
+Q.57 Write an SQL query to find the customer_number for the customer who has placed the largest number of orders.
+
+>>> WITH temp_orders AS (SELECT DISTINCT customer_number, 
+			DENSE_RANK() OVER(ORDER BY total_orders DESC) AS ranking 
+			FROM (SELECT customer_number, 
+			COUNT(order_number) OVER(PARTITION BY customer_number) total_orders
+			FROM orders)
+      temp_cust_details
+		  )
+    SELECT customer_number
+    FROM temp_orders
+    WHERE ranking = 1;
+
+=======================================================================================================================================================================
+
+Q.58 Write an SQL query to report all the consecutive available seats in the cinema. Return the result table ordered by seat_id in ascending order.
+
+>> SELECT DISTINCT c1.seat_id 
+  FROM cinema c1
+  INNER JOIN cinema c2
+  ON ABS(c1.seat_id - c2.seat_id) = 1
+  AND (c1.free = 1 AND c2.free = 1)
+  ORDER BY c1.seat_id;
+
+=======================================================================================================================================================================
+
+Q.59 Write an SQL query to report the names of all the salespersons who did not have any orders related to the company with the name "RED".
+
+>> SELECT name 
+    FROM sales_person
+    WHERE sales_id NOT IN (SELECT o.sales_id
+    FROM orders o
+    INNER JOIN company c 
+    ON c.company_id = o.company_id
+    WHERE c.name = 'RED'
+    );
+
+=======================================================================================================================================================================
+
+Q.60 Write an SQL query to report for every three line segments whether they can form a triangle. Return the result table in any order.
+
+>> SELECT *,
+  CASE WHEN x + y > z AND y + z > x AND z + x > y
+  THEN 'Yes'
+  ELSE 'No'
+  END as triangle
+  FROM triangle;
+
+=======================================================================================================================================================================
+
+Q.61 
+
+
+
+
+
+
