@@ -339,7 +339,131 @@ ORDER BY t1.item_type DESC
 
 =======================================================================================================================================================================
 
-Q.82 
+Q.82 Write a Query to report the median of searches made by a user. Round the median to one decimal point.
+
+>>> SELECT
+  CAST(DATE_FORMAT(curr_month_ua.event_date, '%m') AS UNSIGNED) AS month,
+  count(distinct curr_month_ua.user_id) AS monthly_active_users
+FROM 
+  user_actions curr_month_ua
+WHERE
+  curr_month_ua.event_type IN ('sign-in', 'like', 'comment')
+  AND DATE_FORMAT(curr_month_ua.event_date,'%Y-%m') = '2022-06'
+  AND EXISTS(
+    SELECT
+      *
+    FROM
+      user_actions last_month_ua
+    WHERE
+      curr_month_ua.user_id = last_month_ua.user_id
+      AND last_month_ua.event_type IN ('sign-in', 'like', 'comment')
+      AND DATE_FORMAT(curr_month_ua.event_date, '%Y-%m') = 
+        DATE_FORMAT(last_month_ua.event_date + INTERVAL '1' MONTH, '%Y-%m') 
+  )
+GROUP BY
+  CAST(DATE_FORMAT(curr_month_ua.event_date, '%m') AS UNSIGNED)
+;
+
+=======================================================================================================================================================================
+
+Q.84 Write a Query to update the Facebook advertisers status using the daily_pay table. Advertiser is a two-column table containing the user id and their payment
+	status based on the last payment and daily_pay table has current information about their payment. Only advertisers who paid will show up in this table. Output the user
+	id and current payment status sorted by the user id.
+
+>>> SELECT user_id, 
+      CASE
+          WHEN user_id IN (SELECT user_id FROM daily_pay) THEN 'EXISTING'
+          ELSE 'CHURN'
+          END AS new_status
+      FROM advertiser
+   ORDER BY user_id;
+
+=======================================================================================================================================================================
+
+Q.85 Write a SQL Query that calculates the total time that the fleet of servers was running. The output should be in units of full days.
+
+>>>  SELECT stop_time - start_time AS total_up_time
+	FROM (SELECT SUM(CASE
+	WHEN session_status = 'start' then EXTRACT(DAY from STR_TO_DATE(status_time, '%m/%d/%y'))
+	END)
+	AS start_time,
+	SUM(CASE
+		WHEN session_status = 'stop' then EXTRACT(DAY from STR_TO_DATE(status_time, '%m/%d/%y'))
+		END) AS stop_time
+	FROM server_utilization)
+	temp_server_utilization;
+	
+=======================================================================================================================================================================
+
+Q.86  Sometimes, payment transactions are repeated by accident; it could be due to user error, API failure or a retry error that causes a credit card to be charged
+	twice. Using the transactions table, identify any payments made at the same merchant with the same credit card for the same amount within 10 minutes of each other.
+	Count such repeated payments.
+	
+>>> WITH up_time_by_server AS (SELECT server_id, session_status, status_time,
+    CASE
+    WHEN session_status = 'stop'
+    THEN
+        TIMESTAMPDIFF(SECOND, LAG(status_time) OVER(PARTITION BY server_id ORDER BY status_time), status_time)/3600
+  END as up_time
+  FROM server_utilization)
+	SELECT ROUND(sum(up_time)/24)
+	FROM up_time_by_server
+	WHERE up_time is NOT NULL;
+	
+=======================================================================================================================================================================
+
+Q.87  Write a SQL Query to find the bad experience rate in the first 14 days for new users who signed up in June 2022. Output the percentage of bad experience rounded
+	to 2 decimal places.
+
+>>>  SELECT ROUND
+	(SUM (CASE
+              WHEN status !='completed successfully'  THEN 1 ELSE 0
+              END)*100.0/count(*),2)  AS bad_experience_pct
+	FROM 
+		customers C
+	INNER JOIN 
+		orders O 
+	ON 
+		o.customer_id = c.customer_id
+	WHERE 
+        o.order_timestamp < date_add(STR_TO_date(signup_timestamp, '%m/%d/%Y'), INTERVAL 14 DAY) 
+        AND 
+        MONTH(STR_TO_date(signup_timestamp, '%m/%d/%Y')) = 06 
+        AND 
+        YEAR(STR_TO_date(signup_timestamp, '%m/%d/%Y')) = 2022;
+
+=======================================================================================================================================================================
+
+Q.88 Write an SQL query to find the total score for each gender on each day. Return the result table ordered by gender and day in ascending order.
+
+>>> SELECT gender, day,
+    SUM(score_points)
+    OVER(PARTITION BY gender ORDER BY day)
+    AS total
+    FROM scores;
+
+=======================================================================================================================================================================
+
+Q.92 Write an SQL query to report for each install date, the number of players that installed the game on that day, and the day one retention.
+
+>>> SELECT a.event_date AS install_date, 
+        COUNT(a.player_id) AS installs, 
+        ROUND(COUNT(b.player_id) / COUNT(a.player_id), 2) AS day1_retention
+	FROM
+        (SELECT player_id, MIN(event_date) AS event_date
+         FROM activity 
+         GROUP BY player_id) a
+	LEFT JOIN activity b
+	ON a.player_id = b.player_id 
+	AND a.event_date + 1 = b.event_date
+	GROUP BY a.event_date;
+
+=======================================================================================================================================================================
+
+Q.93
+
+
+
 
 
 
