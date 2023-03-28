@@ -416,6 +416,205 @@ Q.35 Write an SQL query to:
 
 ================================================================================================================================================================
 
-Q.36 
+Q.36 Write an SQL query to report the distance travelled by each user. Return the result table ordered by travelled_distance in descending order, if two or more users
+	travelled the same distance, order them by their name in ascending order
+
+>>> SELECT u.name,
+  SUM(CASE
+    WHEN r.distance IS NULL THEN 0
+    ELSE r.distance
+  END) AS travelled_distance
+FROM users u
+  LEFT JOIN rides r ON u.id = r.user_id
+GROUP BY u.id, u.name
+ORDER BY
+  travelled_distance DESC,
+  u.name;
+
+================================================================================================================================================================
+
+Q.37 Write an SQL query to show the unique ID of each user, If a user does not have a unique ID replace just show null.
+
+>>> SELECT eu.unique_id, e.name
+   FROM employees e
+   LEFT JOIN employee_uni eu ON e.id = eu.id
+   ;
+
+================================================================================================================================================================
+
+Q.38 Write an SQL query to find the id and the name of all students who are enrolled in departments that no longer exist.
+
+>>> SELECT s.id, s.name
+	FROM students s
+	LEFT JOIN departments d ON s.department_id = d.id
+	WHERE
+	d.id IS NULL;
+
+================================================================================================================================================================
+
+Q.39 Write an SQL query to report the number of calls and the total call duration between each pair of distinct persons (person1, person2) where person1 < person2.
+
+>>> SELECT 
+	CASE
+	WHEN from_id < to_id THEN from_id 
+        ELSE to_id 
+        END AS person1,
+   CASE
+	WHEN from_id < to_id THEN to_id 
+        ELSE from_id 
+        END AS person2,
+  COUNT(*) AS call_count,
+	SUM(duration) AS total_duration
+FROM calls
+GROUP BY person1, person2;
+
+================================================================================================================================================================
+
+Q.40 Write an SQL query to find the average selling price for each product. average_price should be rounded to 2 decimal places. Return the result table in any order.
+
+>>> SELECT p.product_id,
+    ROUND(SUM(up.units*p.price)/SUM(up.units), 2) AS average_price
+FROM units_sold up
+  JOIN prices p ON up.product_id = p.product_id
+    AND up.purchase_date BETWEEN p.start_date AND p.end_date
+GROUP BY p.product_id;
+
+================================================================================================================================================================
+
+Q.41 Write an SQL query to report the number of cubic feet of volume the inventory occupies in each warehouse.
+
+>>> SELECT w.name AS warehouse_name,
+        SUM(p.length * p.width * p.height * w.units) AS volume
+	FROM warehouse w
+	INNER JOIN products p
+	ON w.product_id = p.product_id
+	GROUP BY w.name;
+
+================================================================================================================================================================
+
+Q.42 Write an SQL query to report the difference between the number of apples and oranges sold each day. Return the result table ordered by sale_date.
+
+>>> SELECT sale_date,
+        SUM( CASE
+	WHEN fruit = 'APPLES' THEN sold_num
+	WHEN fruit = 'ORANGES' THEN -sold_num
+	END) AS difference
+  FROM sales
+  GROUP BY sale_date
+  ORDER BY sale_date;
+
+================================================================================================================================================================
+
+Q.43 Write an SQL query to report the fraction of players that logged in again on the day after the day they first logged in, rounded to 2 decimal places.
+	In other words, you need to count the number of players that logged in for at least two consecutive days starting from their first login date, then divide that
+	number by the total number of players.
+	
+>>> WITH temp_activity AS (SELECT player_id,
+	LEAD(event_date, 1) OVER(PARTITION BY player_id ORDER BY event_date)  - event_date  AS difference
+	FROM activity)
+	temp_activity2 AS (SELECT COUNT(DISTINCT player_id) AS players_count
+	FROM temp_activity
+	WHERE difference = 1
+	GROUP BY player_id)
+
+SELECT ROUND(COUNT(*) / (SELECT COUNT(DISTINCT player_id) FROM activity), 2) AS fraction
+FROM temp_activity2;
+
+================================================================================================================================================================
+
+Q.44 Write an SQL query to report the managers with at least five direct reports. Return the result table in any order.
+
+>>> SELECT name FROM employee 
+	WHERE id = (SELECT manager_id
+	FROM employee
+	GROUP BY manager_id
+	HAVING COUNT(manager_id) >= 5)
+	;
+
+================================================================================================================================================================
+
+Q.45 Write an SQL query to report the respective department name and number of students majoring in each department for all departments in the Department table
+	(even ones with no current students). Return the result table ordered by student_number in descending order. In case of a tie, order them by
+	dept_name alphabetically.
+
+>>> SELECT d.department_name,
+	COUNT(s.student_id) AS number_of_students
+	FROM department d
+	LEFT JOIN student s
+	ON d.dept_id = s.dept_id
+	GROUP BY d.department_name
+	ORDER BY number_of_students DESC,
+        department_name;
+
+================================================================================================================================================================
+
+Q.46 Write an SQL query to report the customer ids from the Customer table that bought all the products in the Product table.
+
+>>> SELECT customer_id
+    FROM customer 
+  GROUP BY customer_id
+  HAVING COUNT(distinct product_key) = (SELECT COUNT(*) FROM product)
+  ;
+
+================================================================================================================================================================
+
+Q.47 Write an SQL query that reports the most experienced employees in each project. In case of a tie, report all employees with the maximum number of experience years.
+
+>>> SELECT p.project_id, e.employee_id
+	FROM employee e
+	INNER JOIN project p
+	ON e.employee_id = p.employee_id
+	WHERE e.experience_years = (SELECT MAX(experience_years)
+	FROM employee);
+
+================================================================================================================================================================
+
+Q.48 Write an SQL query that reports the books that have sold less than 10 copies in the last year, excluding books that have been available for less than one
+	month from today. Assume today is 2019-06-23.
+
+>>> SELECT b.book_id, b.name
+	FROM books b
+	LEFT JOIN orders o
+	ON b.book_id = o.book_id 
+	WHERE available_from < '2019-05-23' 
+	AND (o.dispatch_date BETWEEN '2018-06-23' AND '2019-06-23')
+	OR dispatch_date IS NULL
+	GROUP BY b.book_id, b.name
+	HAVING COALESCE(SUM(o.quantity), 0) < 10;
+
+================================================================================================================================================================
+
+
+Q.49 Write a SQL query to find the highest grade with its corresponding course for each student. In case of a tie, you should find the course with the smallest
+	course_id. Return the result table ordered by student_id in ascending order.
+
+>>> SELECT student_id, course_id, grade 
+	FROM (SELECT student_id, course_id, grade, 
+	ROW_NUMBER() OVER(PARTITION BY student_id ORDER BY grade DESC) AS ranking
+	FROM enrollments) temp_enrollments
+	WHERE ranking = 1
+	order by student_id;
+
+================================================================================================================================================================
+
+Q.50 Write an SQL query to find the winner in each group. Return the result table in any order.
+
+>>> SELECT group_id, players as player_id
+	FROM (SELECT p.group_id, 
+	CASE
+		WHEN first_player_goals > second_player_goals THEN first_player
+		WHEN first_player_goals < second_player_goals THEN second_player
+		WHEN first_player_goals = second_player_goals THEN IF(first_player < second_player, first_player, second_player)
+	END AS players,
+		MAX(IF(first_player_goals > second_player_goals, first_player_goals, second_player_goals)) AS goals,
+		ROW_NUMBER() OVER(PARTITION BY team_id ORDER BY MAX(IF(first_player_goals > second_player_goals, first_player_goals, second_player_goals)) DESC) AS ranking
+		FROM players p
+		INNER JOIN matches m
+		ON m.first_player = p.player_id 
+		OR m.second_player = p.player_id
+		GROUP BY p.group_id, players
+		) temp_matches
+	WHERE ranking = 1;
+
 
 
