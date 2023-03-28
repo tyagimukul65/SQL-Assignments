@@ -94,8 +94,252 @@ Q.60 Write an SQL query to report for every three line segments whether they can
 
 =======================================================================================================================================================================
 
-Q.61 
+Q.61 Write an SQL query to report the shortest distance between any two points from the Point table
 
+>> SELECT MIN(ABS(c1.x - c2.x)) AS shortest_distance
+	FROM point c1
+	INNER JOIN point c2
+	WHERE c1.x!=c2.x;
+
+=======================================================================================================================================================================
+
+Q.62 Write a SQL query for a report that provides the pairs (actor_id, director_id) where the actor has cooperated with the director at least three times.
+
+>>   SELECT actor_id, director_id
+	FROM actor_director
+	GROUP BY actor_id, director_id
+	HAVING count(*) >= 3
+	;
+
+=======================================================================================================================================================================
+
+Q.63 Write an SQL query that reports the product_name, year, and price for each sale_id in the Sales table. Return the resulting table in any order.
+
+>>>  SELECT p.product_name, s.year, s.price
+	FROM sales s
+	INNER JOIN product p
+	ON p.product_id = s.product_id;
+
+=======================================================================================================================================================================
+
+Q.64 Write an SQL query that reports the average experience years of all the employees for each project, rounded to 2 digits.
+
+>> SELECT p.project_id,
+  ROUND(avg(e.experience_years),2) AS average_years
+  FROM project p
+  INNER JOIN employee e ON p.employee_id = e. employee_id
+  GROUP BY p.project_id
+  ;
+
+=======================================================================================================================================================================
+
+Q.65 Write an SQL query that reports the best seller by total sales price, If there is a tie, report them all. Return the result table in any order.
+
+>> WITH sales_rank AS(SELECT seller_id, sum(price) AS total_sales,
+  DENSE_RANK() OVER(ORDER BY sum(price) DESC) rank_by_sales
+  FROM sales
+  GROUP BY seller_id)
+  SELECT seller_id
+  FROM sales_rank
+  WHERE rank_by_sales = 1
+  ;
+
+=======================================================================================================================================================================
+
+Q.66 Write an SQL query that reports the buyers who have bought S8 but not iPhone. Note that S8 and iPhone are products present in the Product table.
+
+>>   SELECT s.buyer_id
+	FROM sales s
+	INNER JOIN product p
+	ON p.product_id = s.product_id
+	WHERE p.product_name = 'S8' 
+	AND s.buyer_id NOT IN (SELECT s.buyer_id 
+	FROM sales S 
+	INNER JOIN product P 
+	ON s.product_id = p.product_id 
+	WHERE p.product_name = 'Iphone'
+	);
+
+=======================================================================================================================================================================
+
+Q.67 Write an SQL query to compute the moving average of how much the customer paid in a seven days window (i.e., current day + 6 days before). average_amount should
+	be rounded to two decimal places. Return result table ordered by visited_on in ascending order.
+	
+>> WITH daily_sales AS(SELECT visited_on,
+	sum(amount) AS daily_sales_total_amount
+	FROM customer
+	GROUP BY visited_on
+	)
+	SELECT visited_on, sum(daily_sales_total_amount) 
+	OVER(ORDER BY visited_on RANGE BETWEEN INTERVAL '6' day PRECEDING AND CURRENT ROW) AS amount,
+	ROUND(avg(daily_sales_total_amount) 
+	OVER(ORDER BY visited_on RANGE BETWEEN INTERVAL '6' day PRECEDING AND CURRENT ROW), 2) AS average_amount
+	FROM daily_sales
+	LIMIT 6;
+
+=======================================================================================================================================================================
+
+Q.68 Write an SQL query to find the total score for each gender on each day. Return the result table ordered by gender and day in ascending order.
+
+>> SELECT gender, day,
+  SUM(score_points) OVER(PARTITION BY gender ORDER BY day) AS total
+  FROM scores
+  ;
+
+=======================================================================================================================================================================
+
+Q.69 Write an SQL query to find the start and end number of continuous ranges in the table Logs. Return the result table ordered by start_id.
+
+>> SELECT 
+	MIN(log_id) AS start_id, 
+	MAX(log_id) AS end_id 
+FROM (SELECT log_id, DENSE_RANK() OVER(ORDER BY log_id - RN) AS ranking
+FROM (SELECT log_id, ROW_number() OVER(ORDER BY log_id) AS RN
+FROM logs) temp_log) temp_log2
+GROUP BY ranking
+ORDER BY start_id;
+
+=======================================================================================================================================================================
+
+Q.70 Write an SQL query to find the number of times each student attended each exam. Return the result table ordered by student_id and subject_name.
+
+>>> SELECT st.student_id, st.student_name, sb.subject_name,
+  SUM(CASE
+      WHEN ex.subject_name IS NOT NULL
+      THEN 1
+      ELSE 0
+    END) as attended_exams
+FROM students st
+  JOIN subjects sb
+  LEFT JOIN examinations ex ON ex.subject_name = sb.subject_name
+    AND st.student_id = ex.student_id
+GROUP BY 
+  st.student_id,
+  st.student_name,
+  sb.subject_name
+ORDER BY
+  st.student_id,
+  st.student_name
+;
+
+=======================================================================================================================================================================
+
+Q.72 Write an SQL query to find for each month and country, the number of transactions and their total amount, the number of approved transactions and their total
+     amount. Return the result table in any order.
+
+>>> SELECT DATE_FORMAT(trans_date, '%Y-%m') AS month, country,
+  COUNT(*) AS trans_count,
+  COUNT(CASE
+      WHEN state = 'approved'
+      THEN id
+    END) AS approved_count,
+  SUM(amount) AS trans_total_amount,
+  SUM(CASE WHEN state = 'approved'
+      THEN amount
+    END
+  ) AS approved_total_amount
+FROM transactions
+GROUP BY DATE_FORMAT(trans_date, '%Y-%m'), country
+;
+
+=======================================================================================================================================================================
+
+Q.76 Write an SQL query to find the salaries of the employees after applying taxes. Round the salary to the nearest integer.
+     The tax rate is calculated for each company based on the following criteria:
+     ● 0% If the max salary of any employee in the company is less than $1000.
+     ● 24% If the max salary of any employee in the company is in the range [1000, 10000] inclusive.
+     ● 49% If the max salary of any employee in the company is greater than $10000.
+    Return the result table in any order.
+
+>>> WITH salaries_with_max_by_company AS (
+	SELECT *, MAX(salary) OVER(PARTITION BY company_id) AS max_company_salary
+	FROM salaries)
+	SELECT company_id, employee_id, employee_name,
+	CASE
+	WHEN max_company_salary > 10000
+	THEN
+	CEILING(salary - (salary*0.49))
+	WHEN max_company_salary >= 1000
+	THEN
+	CEILING(salary - (salary*0.24))
+	ELSE salary
+	END AS salary
+	FROM salaries_with_max_by_company;
+
+=======================================================================================================================================================================
+
+Q.77 Write an SQL query to evaluate the boolean expressions in Expressions table. Return the result table in any order.
+
+>>> SELECT e.left_operand, e.operator, e.right_operand,
+	CASE
+	WHEN e.operator = '<' THEN IF(l.value < r.value, 'TRUE', 'FALSE')
+	WHEN e.operator = '>' THEN IF(l.value > r.value, 'TRUE', 'FALSE')
+        ELSE IF(l.value = r.value, 'TRUE', 'FALSE')
+	END AS result
+	FROM expressions e
+	JOIN variables l
+	ON e.left_operand = l.name
+	JOIN variables r
+	ON e.right_operand = r.name;
+
+=======================================================================================================================================================================
+
+Q.79 Write a query that prints a list of employee names (i.e.: the name attribute) from the Employee table in alphabetical order.
+
+>>>   SELECT name 
+	FROM employee 
+	ORDER BY name;
+
+=======================================================================================================================================================================
+
+Q.80 Write a Query to obtain the year-on-year growth rate for the total spend of each product for each year.
+
+>>> SELECT
+  DATE_FORMAT(transaction_date,'%Y') AS year,
+  product_id,
+  spend AS curr_year_spend,
+  LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')) AS prev_year_spend,
+  ROUND((spend - LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')))
+    *100.00/LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')),2) AS yoy_rate
+FROM user_transactions
+ORDER BY year
+;
+
+=======================================================================================================================================================================
+
+Q.81 Write a SQL Query to find the number of prime and non-prime items that can be stored in the 500,000 square feet warehouse. Output the item type and
+	number of items to be stocked.
+
+>>> WITH product_inventory_summary AS
+(SELECT
+    item_type,
+    SUM(square_footage) as square_footage_required,
+    COUNT(item_id) as unique_item_count,
+    500000 as total_space,
+    FLOOR(500000/sum(square_footage))*sum(square_footage) as space_used,
+    FLOOR(500000/sum(square_footage))*COUNT(item_id) as item_count
+  FROM 
+    inventory
+  GROUP BY 
+    item_type
+)
+SELECT 
+  t1.item_type,
+  CASE
+    WHEN t1.item_type = 'prime_eligible'
+      THEN t1.item_count
+    ELSE
+      FLOOR((500000-t2.space_used)/t1.square_footage_required)*t1.unique_item_count
+  END AS item_count
+FROM
+  product_inventory_summary t1
+  JOIN product_inventory_summary t2 ON t1.item_type <> t2.item_type
+ORDER BY t1.item_type DESC
+;
+
+=======================================================================================================================================================================
+
+Q.82 
 
 
 
