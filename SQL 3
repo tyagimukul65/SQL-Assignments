@@ -1,7 +1,253 @@
-Q.101 
+Q.101 Write an SQL query to show the second most recent activity of each user. If the user only has one activity, return that one. A user cannot perform more than one
+  activity at the same time.
+  
+>>> SELECT DISTINCT username, activity, startDate, endDate,
+    (SELECT u.*,
+           RANK() OVER (PARTITION BY username order by startDate desc) as rnk,
+           COUNT(activity) OVER (partition by username) as num
+    FROM UserActivity u) t
+    WHERE (num <> 1 and rnk = 2) OR (num = 1 and rnk = 1)
+    FROM UserActivity;
+
+=======================================================================================================================================================================
+
+Q.102 Write an SQL query to show the second most recent activity of each user. If the user only has one activity, return that one. A user cannot perform more than one
+      activity at the same time.
+
+>>>  SELECT *,
+    DENSE_RANK() OVER(PARTITION BY username ORDER BY start_date) AS activity_serial,
+    COUNT(*) OVER(PARTITION BY username) AS total_activity_count_by_user
+    FROM user_activity)
+  SELECT username, activity, start_date, end_date
+  FROM activity_stat_by_user
+  WHERE CASE
+    WHEN total_activity_count_by_user = 1 THEN 1
+    WHEN activity_serial = 2 THEN 1
+  END = 1;
+
+=======================================================================================================================================================================
+
+Q.103 Query the Name of any student in STUDENTS who scored higher than 75 Marks. Order your output by the last three characters of each name. If two or more students
+      both have names ending in the same last three characters (i.e.: Bobby, Robby, etc.), secondary sort them by ascending ID.
+
+>>> SELECT name
+    FROM students
+    WHERE marks > 75
+    ORDER BY RIGHT(name, 3),id
+    ;
+
+=======================================================================================================================================================================
+
+Q.104 Write a query that prints a list of employee names (i.e.: the name attribute) for employees in Employee having a salary greater than $2000 per month who have
+      been employees for less than 10 months. Sort your result by ascending employee_id.
+
+>>> SELECT name
+    FROM employee
+    WHERE salary > 2000 AND months < 10
+    ORDER BY employee_id
+    ;
+
+=======================================================================================================================================================================
+
+Q.105 Write a query identifying the type of each record in the TRIANGLES table using its three side lengths.
+      Output one of the following statements for each record in the table:
+      ● Equilateral: It's a triangle with sides of equal length.
+      ● Isosceles: It's a triangle with sides of equal length.
+      ● Scalene: It's a triangle with sides of differing lengths.
+      ● Not A Triangle: The given values of A, B, and C don't form a triangle.
+
+>>> SELECT a, b, c,
+      CASE WHEN a + b <= c OR b + c <= a OR c + a <= b THEN 'Not A Triangle'
+        WHEN a = b AND b = c THEN 'Equilateral'
+        WHEN a = b THEN 'Isosceles'
+        ELSE 'Scalene'
+      END AS triangle_type
+    FROM triangles;
+
+=======================================================================================================================================================================
+
+Q.106 Write a query calculating the amount of error (i.e.: actual - miscalculated average monthly salaries), and round it up to the next integer.
+
+>>> SELECT 
+    ROUND(AVG(salary) -AVG(CAST(REPLACE(CAST(salary AS CHAR),'0','') AS UNSIGNED)), 2) AS diff_average
+    FROM
+      employees
+    WHERE
+      salary > 1000
+      AND salary < 100000
+    ;
+
+=======================================================================================================================================================================
+
+Q.107 Write a query to find the maximum total earnings for all employees as well as the total number of employees who have maximum total earnings. Then print these
+      values as 2 space-separated integers.
+
+>>> SELECT MAX(salary*months) as total_earnings,
+    COUNT(*) 
+    FROM employee
+    WHERE (salary*months) in
+    (SELECT MAX(months * salary) 
+    FROM employee);
+
+=======================================================================================================================================================================
+
+Q.108 a.) Query an alphabetically ordered list of all names in OCCUPATIONS, immediately followed  by the first letter of each profession AS a parenthetical
+          (i.e.: enclosed in parentheses).
+
+>> a)  SELECT CONCAT(name, '(',substring(occupation, 1, 1),')') as `name(occupation)`
+        FROM occupations 
+        ORDER BY name;
 
 
+Q.108 b.) WHERE [occupation_COUNT] is the number of occurrences of an occupation in OCCUPATIONS and [occupation] is the lowerCASE occupation name. If more than one
+          Occupation hAS the same [occupation_COUNT],  they should be ordered alphabetically.
 
+>> b)  SELECT CONCAT("There are a total of ", COUNT(*),' ', lower(occupation), 's.')  AS info
+        FROM occupations 
+        GROUP BY occupation 
+        ORDER BY COUNT(occupation), occupation;
+
+=======================================================================================================================================================================
+
+Q.109 Pivot the Occupation column in OCCUPATIONS so that each Name is sorted alphabetically and displayed underneath its corresponding Occupation. The output column
+      headers should be Doctor, Professor, Singer, and Actor, respectively.
+
+>>> SELECT 
+        MAX(CASE WHEN occupation = 'Doctor' then name END) AS Doctor,
+        MAX(CASE WHEN occupation = 'Professor' then name END) AS Professor,
+        MAX(CASE WHEN occupation = 'Singer' then name END) AS Singer,
+        MAX(CASE WHEN occupation = 'Actor' then name END) AS Actor
+    FROM (SELECT name,occupation,
+          row_number() over(partition by occupation order by name) AS row_num 
+    FROM occupations) AS base 
+    GROUP BY row_num;
+
+=======================================================================================================================================================================
+
+Q.110 Write a query to find the node type of Binary Tree ordered by the value of the node. Output one of the
+      following for each node:
+      ● Root: If node is root node.
+      ● Leaf: If node is leaf node.
+      ● Inner: If node is neither root nor leaf node.
+
+>>> SELECT n,
+    CASE WHEN p IS NULL THEN 'Root'
+      WHEN n IN ( SELECT p FROM bst) THEN 'Inner'
+      ELSE 'Leaf'
+    END as node_type
+  FROM bst
+  ORDER BY n
+  ;
+
+=======================================================================================================================================================================
+
+Q.111 Given the table schemas below, write a query to print the company_code, founder name, total number of lead managers, total number of senior managers, total
+      number of managers, and total number of employees. Order your output by ascending company_code.
+
+
+>>> SELECT c.company_code, c.founder,
+      count(distinct lm.lead_manager_code) AS lead_manager_count,
+      count(distinct sm.senior_manager_code) AS senior_manager_count,
+      count(distinct m.manager_code) AS manager_count,
+      count(distinct e.employee_code) AS employeee_count
+    FROM lead_manager lm
+      LEFT JOIN senior_manager sm ON lm.lead_manager_code = sm.lead_manager_code
+      LEFT JOIN manager m ON m.senior_manager_code = sm.senior_manager_code
+      LEFT JOIN employee e ON e.manager_code = m.manager_code
+      LEFT JOIN company c ON c.company_code = lm.company_code
+    GROUP BY c.company_code, c.founder
+    ORDER BY c.company_code
+    ;
+
+=======================================================================================================================================================================
+
+Q.112 Write a query to print all prime numbers less than or equal to 1000. Print your result on a single line, and use the ampersand () character as your separator
+      (instead of a space). For example, the output for all prime numbers <=10 would be: 2&3&5&7
+
+>>> SELECT GROUP_CONCAT(R2.n SEPARATOR '&') as prime_number
+    FROM (SELECT @ctr2:=@ctr2+1 "n"
+    FROM information_schema.tables R2IS1, information_schema.tables R2IS2,
+    (SELECT @ctr2:=1) TI
+     WHERE @ctr2<@range) R2
+    WHERE NOT EXISTS (SELECT R1.n
+     FROM (SELECT @ctr1:=@ctr1+1 "n"
+     FROM information_schema.tables R1IS1, information_schema.tables R1IS2,
+     (SELECT @ctr1:=1) I1 WHERE @ctr1<@range) R1
+     WHERE R2.n%R1.n=0 AND R2.n>R1.n
+     );
+
+=======================================================================================================================================================================
+
+Q.113 Write a query to print the pattern P(20).
+
+>> WITH RECURSIVE generate_numbers AS   
+   (SELECT 1 AS n
+    UNION 
+    SELECT n+1 
+    FROM generate_numbers 
+    WHERE n<20) 
+    SELECT repeat('*',n) 
+    FROM generate_numbers;
+
+=======================================================================================================================================================================
+
+Q.114 Write a query to print the pattern P(20).
+
+>>> WITH RECURSIVE generate_numbers AS   
+    (SELECT 20 AS n
+     UNION 
+     SELECT n-1 
+     FROM generate_numbers 
+     WHERE n>1) 
+     SELECT repeat('*',n) 
+     FROM generate_numbers;
+
+=======================================================================================================================================================================
+
+Q.116 Write a query to output all such symmetric pairs in ascending order by the value of X. List the rows such that X1 ≤ Y1.
+
+>>> select distinct x1,y1 from(
+    select f1.x as x1,f1.y as y1,f2.x as x2,f2.y as y2
+    from functions f1 inner join functions f2
+    on f1.x=f2.y and f1.y=f2.x)a
+    where x1<=y1
+    order by x1;
+
+=======================================================================================================================================================================
+
+Q.117 Write a query that prints a list of employee names (i.e.: the name attribute) for employees in Employee having a salary greater than $2000 per month who have
+      been employees for less than 10 months. Sort your result by ascending employee_id.
+
+>>> SELECT name
+    FROM employee
+    WHERE salary > 2000
+    AND months < 10
+    ORDER BY employee_id
+    ;
+
+=======================================================================================================================================================================
+
+Q.118 same as Q.105
+\
+
+
+Q.119 Assume you are given the table below containing information on user transactions for particular products. Write a query to obtain the year-on-year growth rate
+      for the total spend of each product for each year.
+
+>>> SELECT
+    DATE_FORMAT(transaction_date,'%Y') AS year,
+    product_id,
+    spend AS curr_year_spend,
+    LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')) AS prev_year_spend,
+    ROUND((spend - LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')))
+      *100.00/LAG(spend) OVER(ORDER BY DATE_FORMAT(transaction_date,'%Y')),2) AS yoy_rate
+  FROM
+    user_transactions
+  ORDER BY 
+    year
+  ;
+
+=======================================================================================================================================================================
 
 
 
