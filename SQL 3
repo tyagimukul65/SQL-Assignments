@@ -403,42 +403,145 @@ Q.126
     AND DATE_FORMAT(c.signup_timestamp,'%Y-%m') = '2022-06'
   ;
 
+=======================================================================================================================================================================
 
+Q.127 Write an SQL query to find the total score for each gender on each day. Return the result table ordered by gender and day in ascending order.
 
+>>> SELECT gender,day,
+  SUM(score_points) OVER(PARTITION BY gender ORDER BY day) AS total
+  FROM scores;
 
+=======================================================================================================================================================================
 
+Q.128 
 
+Q.130
 
+Q.131
 
+Q.132
 
+Q.133
 
+Q.134
 
+Q.135
 
+Q.136
 
+Q.137 Write a query calculating the amount of error (i.e.: actual - miscalculated average monthly salaries), and round it up to the next integer.
 
+>>> SELECT 
+  ROUND(AVG(salary) -AVG(CAST(REPLACE(CAST(salary AS CHAR),'0','') AS UNSIGNED)), 2) AS diff_average
+  FROM
+    employees
+  WHERE
+    salary > 1000
+    AND salary < 100000
+  ;
 
+=======================================================================================================================================================================
 
+Q.138 
 
+>>> WITH employee_max_sal_count AS(
+    SELECT months * salary AS max_sal,
+      count(*) AS emp_count
+    FROM employee
+    WHERE months * salary = (
+    SELECT MAX(months * salary)
+    FROM employee)
+    GROUP BY months * salary)
+  SELECT CONCAT(max_sal, ' ', emp_count)
+  FROM employee_max_sal_count;
 
+=======================================================================================================================================================================
 
+Q.139 Write a query to find the maximum total earnings for all employees as well as the total number of employees who have maximum total earnings. Then print these
+      values as 2 space-separated integers.
 
+>>> SELECT
+    CONCAT(name, '(', LEFT(occupation,1), ')') AS name_with_occupation
+  FROM
+    occupations;
 
+  WITH occupations_stat AS(
+    SELECT
+      occupation,
+      COUNT(*) AS individual_count
+    FROM
+      occupations
+    GROUP BY
+      occupation
+  )
+  SELECT
+    CONCAT('There are a total of ', individual_count, ' ', LOWER(occupation))
+  FROM
+    occupations_stat
+  ORDER BY individual_count, occupation;
 
+=======================================================================================================================================================================
 
+Q.141 Write a query to find the node type of Binary Tree ordered by the value of the node. Output one of the
+      following for each node:
+      ● Root: If node is root node.
+      ● Leaf: If node is leaf node.
+      ● Inner: If node is neither root nor leaf node.
 
+>>> SELECT n,
+  CASE WHEN p IS NULL THEN 'Root'
+    WHEN n IN ( SELECT p FROM bst) THEN 'Inner'
+    ELSE 'Leaf'
+  END as node_type
+  FROM bst
+  ORDER BY n
+  ;
 
+=======================================================================================================================================================================
 
+Q.142 
 
+>>> SELECT c.company_code, c.founder,
+    count(distinct lm.lead_manager_code) AS lead_manager_count,
+    count(distinct sm.senior_manager_code) AS senior_manager_count,
+    count(distinct m.manager_code) AS manager_count,
+    count(distinct e.employee_code) AS employeee_count
+  FROM
+    lead_manager lm
+    LEFT JOIN senior_manager sm ON lm.lead_manager_code = sm.lead_manager_code
+    LEFT JOIN manager m ON m.senior_manager_code = sm.senior_manager_code
+    LEFT JOIN employee e ON e.manager_code = m.manager_code
+    LEFT JOIN company c ON c.company_code = lm.company_code
+  GROUP BY c.company_code, c.founder
+  ORDER BY c.company_code;
 
+=======================================================================================================================================================================
 
+Q.144 
 
+>>> SELECT s.name
+    FROM friends f
+      JOIN packages p1 ON f.id = p1.id
+      JOIN packages p2 ON p2.id = f.friend_id
+      JOIN students s ON s.id = f.id
+    WHERE p2.salary > p1.salary
+    ;
 
+=======================================================================================================================================================================
 
+Q.145 
 
-
-
-
-
-
-
-
+>>> SELECT h.hacker_id, h.name
+  FROM
+    submissions s
+    JOIN challenges c ON c.challenge_id = s.challenge_id 
+    JOIN difficulty d ON d.difficulty_level = c.difficulty_level
+    JOIN hackers h ON h.hacker_id = s.hacker_id
+  WHERE s.score = d.score
+  GROUP BY 
+    h.hacker_id,
+    h.name
+  ORDER BY 
+    COUNT(*) DESC,
+    h.hacker_id
+  LIMIT 1;
