@@ -227,7 +227,7 @@ Q.117 Write a query that prints a list of employee names (i.e.: the name attribu
 
 =======================================================================================================================================================================
 
-Q.118 same as Q.105
+Q.118 Same as Q.105
 \
 
 
@@ -248,6 +248,187 @@ Q.119 Assume you are given the table below containing information on user transa
   ;
 
 =======================================================================================================================================================================
+
+Q.120 Write a SQL query to find the number of prime and non-prime items that can be stored in the 500,000 square feet warehouse. Output the item type and number of
+      items to be stocked.
+
+>>> WITH product_inventory_summary AS
+      (SELECT item_type,
+          SUM(square_footage) as square_footage_required,
+          COUNT(item_id) as unique_item_count,
+          500000 as total_space,
+          FLOOR(500000/sum(square_footage))*sum(square_footage) as space_used,
+          FLOOR(500000/sum(square_footage))*COUNT(item_id) as item_count
+        FROM inventory
+        GROUP BY item_type)
+      SELECT t1.item_type,
+        CASE
+          WHEN t1.item_type = 'prime_eligible'
+            THEN t1.item_count
+          ELSE
+            FLOOR((500000-t2.space_used)/t1.square_footage_required)*t1.unique_item_count
+        END AS item_count
+      FROM product_inventory_summary t1
+        JOIN product_inventory_summary t2 ON t1.item_type <> t2.item_type
+      ORDER BY t1.item_type DESC
+      ;
+
+=======================================================================================================================================================================
+
+Q.121 Assume you have the table below containing information on Facebook user actions. Write a query to obtain the active user retention in July 2022. Output the
+      month (in numerical format 1, 2, 3) and the number of monthly active users (MAUs).
+   
+>>> SELECT
+    CAST(DATE_FORMAT(curr_month_ua.event_date, '%m') AS UNSIGNED) AS month,
+    count(distinct curr_month_ua.user_id) AS monthly_active_users
+  FROM 
+    user_actions curr_month_ua
+  WHERE
+    curr_month_ua.event_type IN ('sign-in', 'like', 'comment')
+    AND DATE_FORMAT(curr_month_ua.event_date,'%Y-%m') = '2022-06'
+    AND EXISTS(
+      SELECT * FROM
+        user_actions last_month_ua
+      WHERE
+        curr_month_ua.user_id = last_month_ua.user_id
+        AND last_month_ua.event_type IN ('sign-in', 'like', 'comment')
+        AND DATE_FORMAT(curr_month_ua.event_date, '%Y-%m') = 
+          DATE_FORMAT(last_month_ua.event_date + INTERVAL '1' MONTH, '%Y-%m') 
+          )
+  GROUP BY
+    CAST(DATE_FORMAT(curr_month_ua.event_date, '%m') AS UNSIGNED);
+
+=======================================================================================================================================================================
+
+Q.122 Write a query to report the median of searches made by a user. Round the median to one decimal point.
+
+=====================================================
+
+Q.123 Write a query to update the Facebook advertiser's status using the daily_pay table. Advertiser is a two-column table containing the user id and their payment
+      status based on the last payment and daily_pay table has current information about their payment. Only advertisers who paid will show up in this table.
+
+>>> WITH full_outer_join_table AS(
+  SELECT dp.user_id AS user_id_dp, dp.paid,
+    a.user_id AS user_id_advertiser, a.status
+  FROM daily_pay dp
+    LEFT OUTER JOIN advertiser a ON dp.user_id = a.user_id
+  UNION
+  SELECT
+    dp.user_id AS user_id_dp,
+    dp.paid,
+    a.user_id AS user_id_advertiser,
+    a.status
+  FROM daily_pay dp
+    RIGHT OUTER JOIN advertiser a ON dp.user_id = a.user_id
+)
+SELECT 
+  CASE
+    WHEN user_id_dp IS NULL
+      THEN user_id_advertiser
+    ELSE user_id_dp
+  END AS user_id,
+  CASE
+    WHEN user_id_dp is NULL
+      THEN 
+        'CHURN' 
+    ELSE
+      CASE
+        WHEN status is null
+            THEN  'NEW'
+        WHEN status = 'CHURN'
+          THEN  'RESURRECT'
+        ELSE 'EXISTING'
+      END
+  END AS new_status
+FROM full_outer_join_table full_table
+;
+
+=======================================================================================================================================================================
+
+Q.124 Write a query that calculates the total time that the fleet of servers was running. The output should be in units of full days.
+
+>>> WITH up_time_by_server AS
+    (
+      SELECT 
+        server_id,
+        session_status,
+        status_time,
+      CASE
+        WHEN session_status = 'stop'
+          THEN
+            TIMESTAMPDIFF(SECOND, status_time,LAG(status_time) OVER(PARTITION BY server_id ORDER BY status_time))/3600
+      END as up_time
+      FROM server_utilization
+    )
+    SELECT
+      ROUND(sum(up_time)/24)
+    FROM
+      up_time_by_server
+    WHERE
+      up_time is not null
+    ;
+
+=======================================================================================================================================================================
+
+Q.125 Using the transactions table, identify any payments made at the same merchant with the same credit card for the same amount within 10 minutes of each other.
+      Count such repeated payments.
+
+>>> WITH trx_with_repeadted AS
+    (SELECT credit_card_id, amount, transaction_timestamp,
+        count(*) OVER(
+            PARTITION BY credit_card_id,amount
+            ORDER BY transaction_timestamp
+            RANGE BETWEEN INTERVAL '10' MINUTE PRECEDING AND CURRENT ROW)
+            AS moving_count
+      FROM transactions)
+    SELECT COUNT(*) as payment_count
+    FROM trx_with_repeadted
+    WHERE moving_count > 1;
+
+=======================================================================================================================================================================
+
+Q.126 
+
+>>> SELECT ROUND((COUNT(
+      CASE
+        WHEN lower(o.status) <> 'completed successfully' 
+          THEN o.order_id
+      END
+    )*100.00/COUNT(o.order_id)),2) as bad_experience_pct
+
+  FROM orders o
+    JOIN customers c ON c.customer_id = o.customer_id
+  WHERE 
+    TIMESTAMPDIFF(DAY,o.order_timestamp,c.signup_timestamp) < 14
+    AND DATE_FORMAT(c.signup_timestamp,'%Y-%m') = '2022-06'
+  ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
